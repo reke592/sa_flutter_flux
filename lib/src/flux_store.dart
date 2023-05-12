@@ -17,9 +17,9 @@ abstract class FluxStore extends ChangeNotifier {
   StoreMutations createMutations();
 
   /// triggers event mutation handler and call [notifyListeners].
-  Future<void> commit(String event, dynamic payload) async {
+  Future<void> commit(String event, dynamic result) async {
     if (_mutations.containsKey(event)) {
-      await _mutations[event]!(payload);
+      await _mutations[event]!(result);
       notifyListeners();
     } else {
       debugPrint('missing store event handler for $event');
