@@ -23,7 +23,7 @@ add the package in `pubspec.yaml`
 
 ## Usage
 
-define store events
+Define store events
 ```dart
 abstract class TodoTypeEvents {
   TodoTypeEvents._();
@@ -31,87 +31,198 @@ abstract class TodoTypeEvents {
   static const loading = '$_event/loading';
   static const loaded = '$_event/loaded';
   static const created = '$_event/created';
+  static const updated = '$_event/updated';
   static const started = '$_event/started';
   static const completed = '$_event/completed';
 }
+
+abstract class StageTypeEvents {
+  StageTypeEvents._();
+  static const _event = 'stage';
+  static const loading = '$_event/loading';
+  static const loaded = '$_event/loaded';
+  static const created = '$_event/created';
+  static const deleted = '$_event/deleted';
+}
+
+abstract class TagEvents {
+  TagEvents._();
+  static const _event = 'tag';
+  static const loading = '$_event/loading';
+  static const loaded = '$_event/loaded';
+  static const created = '$_event/created';
+  static const deleted = '$_event/deleted';
+}
+
+abstract class ProjectEvents {
+  ProjectEvents._();
+  static const _event = 'project';
+  static const loaded = '$_event/loaded';
+}
+
+abstract class ManpowerEvents {
+  ManpowerEvents._();
+  static const _event = 'manpower';
+  static const loading = '$_event/loading';
+  static const loaded = '$_event/loaded';
+  static const added = '$_event/added';
+  static const removed = '$_event/removed';
+}
 ```
 
-define store action and parameters
+Define action and parameters
 ```dart
-class LoadTodoParams {
-  int sprintId;
-  LoadTodoParams({required this.sprintId});
+class AddTodoParams {
+  Project project;
+  Employee? assignedEmployee;
+  Stage? stage;
+  String task;
+
+  AddTodoParams({
+    required this.project,
+    required this.task,
+    this.assignedEmployee,
+    this.stage,
+  });
 }
 
-class LoadTodo extends StoreAction<TodoStore, LoadTodoParams, List<Todo>> {
-  LoadTodo(super.payload);
+class AddTodo extends StoreAction<TodoStore, AddTodoParams, Todo> {
+  AddTodo(super.payload);
 
   @override
-  Future<void> apply(store, result) {
-    return store.commit(TodoTypeEvents.loaded, result);
+  Future<void> apply(TodoStore store, Todo result) {
+    return store.commit(TodoTypeEvents.created, result);
   }
 
   @override
-  Future<List<Todo>> effect(store) async {
-    try {
-      store.commit(TodoTypeEvents.loading, true);
-      // make api call to fetch all todos using payload.sprintId
-      // dummy process
-      await Future.delayed(const Duration(seconds: 1));
-      return List.generate(
-        10,
-        (index) => Todo(
-          id: index + 1,
-          sprintId: payload.sprintId,
-          task: 'generated sample $index',
-          dateCreated: DateTime.now(),
-        ),
-      );
-    } catch (e) {
-      rethrow;
-    } finally {
-      store.commit(TodoTypeEvents.loading, false);
+  Future<Todo> effect(TodoStore store) async {
+    if (payload.task.trim().isEmpty) {
+      throw 'Task description is required';
     }
+    return Todo(
+      id: store.nextTodoId,
+      project: payload.project,
+      task: payload.task,
+      assignedEmployee: payload.assignedEmployee,
+      stage: payload.stage ??
+          store.stages.firstWhere((element) => element.isInitial),
+    );
   }
 }
 ```
 
-define store and mutations
+Define states and mutations
 ```dart
 
 class TodoStore extends FluxStore {
-  // state
-  bool _isLoading = false;
+  // states
+  Project _project = Project.empty();
+  bool _isLoadingTodos = false;
+  bool _isLoadingStages = false;
+  bool _isLoadingTags = false;
+  bool _isLoadingManpower = false;
+  final List<Stage> _stages = [];
+  final List<Tag> _tags = [];
   final List<Todo> _todos = [];
-  final List<Todo> _ongoing = [];
-  final List<Todo> _completed = [];
+  final List<Employee> _manpower = [];
 
   // computed
-  bool get isLoading => _isLoading;
+  Project get project => _project;
+  int get nextTodoId => _todos.length + 1;
+  bool get isLoadingTodos => _isLoadingTodos;
   List<Todo> get todos => List.of(_todos);
-  List<Todo> get ongoing => List.of(_ongoing);
-  List<Todo> get completed => List.of(_completed);
-  String get total =>
-      'Total: ${_todos.length + _ongoing.length + _completed.length}';
+  bool get isLoadingManpower => _isLoadingManpower;
+  List<Employee> get manpower => List.of(_manpower);
+  int get nextStageId => _stages.length + 1;
+  bool get isLoadingStages => _isLoadingStages;
+  List<Stage> get stages => List.of(_stages);
+  int get nextTaskPriorityId => _tags.length + 1;
+  bool get isLoadingTags => _isLoadingTags;
+  List<Tag> get tags => List.of(_tags);
+  List<Todo> todosPerStage(Stage stage) =>
+      List.of(_todos.where((element) => element.stage.id == stage.id)).toList();
+
+  @override
+  Future<void> commit(String event, dynamic result) {
+    debugPrint(event);
+    return super.commit(event, result);
+  }
 
   // mutations
   @override
   StoreMutations createMutations() {
     return {
+      // sprint
+      ProjectEvents.loaded: (payload) {
+        var data = payload as Project;
+        _project = _project.copyWith(
+          id: data.id,
+          project: data.project,
+          dateKickOff: data.dateKickOff,
+          dateLive: data.dateLive,
+        );
+      },
+      // todos
       TodoTypeEvents.loading: (payload) {
-        _isLoading = payload == true;
+        _isLoadingTodos = payload == true;
       },
       TodoTypeEvents.loaded: (payload) {
-        final data = payload as List<Todo>;
-        for (var todo in data) {
-          if (todo.dateCompleted != null) {
-            completed.add(todo);
-          }
-        }
+        _todos.clear();
+        _todos.addAll(payload as List<Todo>);
+      },
+      TodoTypeEvents.created: (payload) {
+        var data = payload as Todo;
+        _todos.add(data);
+      },
+      TodoTypeEvents.updated: (payload) {
+        var updated = payload as Todo;
+        var current = _todos.indexWhere((element) => element.id == updated.id);
+        _todos[current] = _todos[current].copyWith(
+          id: updated.id,
+          task: updated.task,
+          assignedEmployee: updated.assignedEmployee,
+          dateCompleted: updated.dateCompleted,
+          dateCreated: updated.dateCreated,
+          dateStarted: updated.dateStarted,
+          remarks: updated.remarks,
+          project: updated.project,
+          stage: updated.stage,
+        );
+      },
+      // stages
+      StageTypeEvents.loading: (payload) {
+        _isLoadingStages = payload == true;
+      },
+      StageTypeEvents.loaded: (payload) {
+        _stages.clear();
+        _stages.addAll(payload as List<Stage>);
+      },
+      // tags
+      TagEvents.loading: (payload) {
+        _isLoadingTags = payload == true;
+      },
+      TagEvents.loaded: (payload) {
+        _tags.clear();
+        _tags.addAll(payload as List<Tag>);
+      },
+      // manpower
+      ManpowerEvents.loading: (payload) {
+        _isLoadingManpower = payload == true;
+      },
+      ManpowerEvents.loaded: (payload) {
+        _manpower.clear();
+        _manpower.addAll(payload as List<Employee>);
+      },
+      ManpowerEvents.added: (payload) {
+        var data = payload as Employee;
+        _manpower.add(data);
+      },
+      ManpowerEvents.removed: (payload) {
+        var data = payload as Employee;
+        _manpower.remove(data);
       }
     };
   }
-}
 ```
 
 ## Additional information
