@@ -1,5 +1,5 @@
 name: sa_flutter_flux
-description: A new Flutter package project.
+description: Sample abstract Flux. An experimental attempt to implement flux state mutations.
 version: 0.0.1
 homepage: 'https://github.com/reke592/sa_flutter_flux'
 
