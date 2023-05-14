@@ -12,7 +12,7 @@ and the Flutter guide for
 -->
 
 Sample Flux store implementation in Flutter.  
-!!!
+**Disclaimer:**
 Please note that this package is not intended for production use and should be used at your own risk. It was created as an experimental attempt to implement flux state mutations. Keep in mind that extensive use of List.of in computed getters may have potential implications, and careful consideration should be given to memory usage and performance.
 
 ## Features
