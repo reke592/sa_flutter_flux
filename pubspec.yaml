@@ -1,9 +1,7 @@
 name: sa_flutter_flux
 description: A new Flutter package project.
 version: 0.0.1
-homepage:
-
-publish_to: 'none'
+homepage: 'https://github.com/reke592/sa_flutter_flux'
 
 environment:
   sdk: '>=2.19.6 <3.0.0'
@@ -17,6 +15,7 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^2.0.0
+  mocktail: ^0.3.0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
