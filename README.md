@@ -19,6 +19,35 @@ Please note that this package is not intended for production use and should be u
 
 abstract class to implement unidirectional flow. see [sample](https://github.com/reke592/sa_flutter_flux_sample).  
 
+Abstract Store commit and dispatch methods.
+```dart
+/// triggers event mutation handler and call [notifyListeners].
+Future<void> commit(String event, dynamic result) async {
+  if (_mutations.containsKey(event)) {
+    await _mutations[event]!(result);
+    notifyListeners();
+  } else {
+    debugPrint('missing store event handler for $event');
+  }
+}
+
+/// run [Action] and apply commits to this store.
+///
+/// use [onError] to run [BuildContext] related process.
+Future<void> dispatch<T extends FluxStore>(
+  StoreAction action, {
+  void Function(dynamic error, StackTrace stackTrace)? onError,
+}) {
+  return action
+      .effect(this)
+      .then((result) => action.apply(this, result))
+      .onError((error, stackTrace) {
+    onError?.call(error, stackTrace);
+    return action.rollback(this, error, stackTrace);
+  });
+}
+```
+
 ## Getting started
 
 add the package in `pubspec.yaml`
@@ -225,6 +254,30 @@ class TodoStore extends FluxStore {
       }
     };
   }
+```
+
+Call store dispatch method
+```dart
+ElevatedButton(
+  onPressed: () {
+    context
+      .read<TodoStore>()
+      .dispatch(
+        AddTodo(
+          AddTodoParams(
+            project: store.project,
+            task: controller.text,
+            assignedEmployee: employee,
+            stage: stage,
+          ),
+        ),
+        onError: (error, stackTrace) =>
+            MessageDialog.showError(context, error, stackTrace),
+      )
+      .then((value) => Navigator.pop(context));
+  },
+  child: const Text('Save')
+);
 ```
 
 ## Additional information
