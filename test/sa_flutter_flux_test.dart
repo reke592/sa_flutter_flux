@@ -28,12 +28,11 @@ class TestActionParam {
 class TestStore extends Mock implements FluxStore {}
 
 class MockCreateAction extends Mock
-    implements StoreAction<TestStore, TestActionParam, TestData> {}
+    implements StoreAction<TestStore, TestData> {}
 
 void main() {
   late TestStore store;
   late TestData result;
-  late TestActionParam param;
   late MockCreateAction action;
   late List<TestData> state;
   final StoreMutations mutations = {
@@ -53,7 +52,6 @@ void main() {
   });
 
   void prepareActionParams(String event, String value) {
-    param = TestActionParam(value: value);
     result = TestData(value: value);
     when(() => store.dispatch(action)).thenAnswer((_) async {
       action.effect(store).then((value) => action.apply(store, result));
@@ -61,7 +59,6 @@ void main() {
     when(() => store.commit(event, result)).thenAnswer((_) async {
       mutations[event]?.call(result);
     });
-    when(() => action.payload).thenReturn(param);
     when(() => action.effect(store)).thenAnswer((_) async => result);
     when(() => action.apply(store, result)).thenAnswer((_) async {
       return store.commit(event, result);

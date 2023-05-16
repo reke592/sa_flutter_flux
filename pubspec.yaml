@@ -1,6 +1,6 @@
 name: sa_flutter_flux
 description: Sample abstract Flux. An experimental attempt to implement flux state mutations.
-version: 0.0.2
+version: 0.0.3
 homepage: 'https://github.com/reke592/sa_flutter_flux'
 
 environment:

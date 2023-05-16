@@ -1,13 +1,6 @@
 import 'package:sa_flutter_flux/src/flux_store.dart';
 
-abstract class StoreAction<TStore extends FluxStore, TPayload, TResult> {
-  StoreAction(this.payload);
-
-  /// the payload to consume in [effect] method.
-  ///
-  /// this makese an [StoreAction] to always have a [TPayload] parameter.
-  final TPayload payload;
-
+abstract class StoreAction<TStore extends FluxStore, TResult> {
   /// the process to run.
   ///
   /// > eg. api request
